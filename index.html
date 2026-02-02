@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CLASSROOM QUEST: The Integration Survival Guide</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --terminal-green: #33ff33;
+      --terminal-amber: #ffb000;
+      --terminal-cyan: #00ffff;
+      --terminal-magenta: #ff00ff;
+      --terminal-red: #ff3333;
+      --terminal-dim: #006600;
+      --bg-dark: #0a0a0a;
+      --bg-screen: #0d1a0d;
+      --scanline-opacity: 0.03;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg-dark);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      font-family: 'VT323', monospace;
+    }
+
+    .crt-container {
+      width: 100%;
+      max-width: 850px;
+      background: #1a1a1a;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 
+        0 0 0 4px #333,
+        0 0 0 8px #222,
+        0 0 40px rgba(51, 255, 51, 0.2),
+        inset 0 0 100px rgba(0, 0, 0, 0.5);
+    }
+
+    .screen {
+      background: var(--bg-screen);
+      border-radius: 10px;
+      padding: 30px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .screen::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, var(--scanline-opacity)),
+        rgba(0, 0, 0, var(--scanline-opacity)) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .screen::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+      pointer-events: none;
+      z-index: 11;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px dashed var(--terminal-dim);
+    }
+
+    .title {
+      font-size: 2.2rem;
+      color: var(--terminal-green);
+      text-shadow: 0 0 10px var(--terminal-green);
+      letter-spacing: 4px;
+      animation: flicker 4s infinite;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--terminal-amber);
+      margin-top: 5px;
+      letter-spacing: 2px;
+    }
+
+    @keyframes flicker {
+      0%, 97%, 100% { opacity: 1; }
+      98% { opacity: 0.8; }
+      99% { opacity: 0.9; }
+    }
+
+    /* SANITY METER - PROMINENT */
+    .sanity-container {
+      background: rgba(0, 0, 0, 0.4);
+      border: 2px solid var(--terminal-green);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .sanity-label {
+      font-size: 1.4rem;
+      color: var(--terminal-amber);
+      letter-spacing: 3px;
+      margin-bottom: 10px;
+    }
+
+    .sanity-bar-container {
+      width: 100%;
+      height: 30px;
+      background: #111;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid #333;
+    }
+
+    .sanity-bar {
+      height: 100%;
+      transition: width 0.5s ease, background-color 0.5s ease;
+      position: relative;
+    }
+
+    .sanity-bar.high {
+      background: linear-gradient(90deg, #00aa00, var(--terminal-green));
+      box-shadow: 0 0 20px var(--terminal-green);
+    }
+
+    .sanity-bar.medium {
+      background: linear-gradient(90deg, #aa8800, var(--terminal-amber));
+      box-shadow: 0 0 20px var(--terminal-amber);
+    }
+
+    .sanity-bar.low {
+      background: linear-gradient(90deg, #aa0000, var(--terminal-red));
+      box-shadow: 0 0 20px var(--terminal-red);
+      animation: pulse-bar 1s infinite;
+    }
+
+    @keyframes pulse-bar {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .sanity-value {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.2rem;
+      color: #fff;
+      text-shadow: 1px 1px 2px #000;
+      z-index: 5;
+    }
+
+    .sanity-status {
+      margin-top: 8px;
+      font-size: 1.1rem;
+      letter-spacing: 1px;
+    }
+
+    .sanity-status.high { color: var(--terminal-green); }
+    .sanity-status.medium { color: var(--terminal-amber); }
+    .sanity-status.low { color: var(--terminal-red); }
+
+    .stats-bar {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px 0;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--terminal-dim);
+      font-size: 1rem;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-label {
+      color: var(--terminal-dim);
+    }
+
+    .stat-value {
+      color: var(--terminal-amber);
+    }
+
+    .game-content {
+      position: relative;
+      z-index: 5;
+    }
+
+    .scene-text {
+      font-size: 1.35rem;
+      line-height: 1.8;
+      color: var(--terminal-green);
+      margin-bottom: 25px;
+      min-height: 120px;
+    }
+
+    .scene-text p {
+      margin-bottom: 15px;
+    }
+
+    .highlight {
+      color: var(--terminal-amber);
+      text-shadow: 0 0 5px var(--terminal-amber);
+    }
+
+    .danger {
+      color: var(--terminal-red);
+      text-shadow: 0 0 5px var(--terminal-red);
+    }
+
+    .success {
+      color: var(--terminal-cyan);
+      text-shadow: 0 0 5px var(--terminal-cyan);
+    }
+
+    .student-name {
+      color: var(--terminal-magenta);
+    }
+
+    .internal {
+      color: #7a9f7a;
+      font-style: italic;
+    }
+
+    .choices {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .choice-btn {
+      background: transparent;
+      border: 1px solid var(--terminal-green);
+      color: var(--terminal-green);
+      font-family: 'VT323', monospace;
+      font-size: 1.2rem;
+      padding: 12px 20px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .choice-btn::before {
+      content: "> ";
+      color: var(--terminal-amber);
+    }
+
+    .choice-btn:hover {
+      background: rgba(51, 255, 51, 0.1);
+      border-color: var(--terminal-amber);
+      color: var(--terminal-amber);
+      padding-left: 30px;
+    }
+
+    .choice-btn:active {
+      background: rgba(51, 255, 51, 0.2);
+    }
+
+    .outcome-box {
+      background: rgba(0, 0, 0, 0.3);
+      border-left: 3px solid var(--terminal-cyan);
+      padding: 15px;
+      margin: 20px 0;
+      font-size: 1.2rem;
+    }
+
+    .outcome-box.bad {
+      border-color: var(--terminal-red);
+    }
+
+    .outcome-box.good {
+      border-color: var(--terminal-cyan);
+    }
+
+    .tip-box {
+      background: rgba(255, 176, 0, 0.1);
+      border: 1px dashed var(--terminal-amber);
+      padding: 15px;
+      margin: 20px 0;
+      font-size: 1.1rem;
+      color: var(--terminal-amber);
+    }
+
+    .tip-box::before {
+      content: "★ STRATEGY UNLOCKED: ";
+      font-weight: bold;
+    }
+
+    .interruption {
+      background: rgba(255, 51, 51, 0.15);
+      border: 2px solid var(--terminal-red);
+      padding: 15px;
+      margin: 20px 0;
+      font-size: 1.2rem;
+      color: var(--terminal-red);
+      text-align: center;
+    }
+
+    .inventory {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid var(--terminal-dim);
+      font-size: 1rem;
+      color: var(--terminal-dim);
+    }
+
+    .inventory-title {
+      color: var(--terminal-magenta);
+      margin-bottom: 10px;
+    }
+
+    .inventory-item {
+      display: inline-block;
+      background: rgba(255, 0, 255, 0.1);
+      border: 1px solid var(--terminal-magenta);
+      padding: 3px 10px;
+      margin: 3px;
+      font-size: 0.9rem;
+      color: var(--terminal-magenta);
+    }
+
+    .ending-title {
+      font-size: 1.8rem;
+      text-align: center;
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 2px double currentColor;
+    }
+
+    .ending-good {
+      color: var(--terminal-cyan);
+      border-color: var(--terminal-cyan);
+    }
+
+    .ending-survive {
+      color: var(--terminal-amber);
+      border-color: var(--terminal-amber);
+    }
+
+    .ending-bad {
+      color: var(--terminal-red);
+      border-color: var(--terminal-red);
+    }
+
+    /* OREGON TRAIL EASTER EGG */
+    .easter-egg {
+      position: absolute;
+      bottom: 10px;
+      right: 15px;
+      font-size: 0.8rem;
+      color: var(--terminal-dim);
+      cursor: pointer;
+      opacity: 0.5;
+      transition: opacity 0.3s;
+      z-index: 20;
+    }
+
+    .easter-egg:hover {
+      opacity: 1;
+      color: var(--terminal-green);
+    }
+
+    .oregon-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .oregon-modal.active {
+      display: flex;
+    }
+
+    .oregon-content {
+      background: #000;
+      border: 4px solid var(--terminal-green);
+      padding: 40px;
+      max-width: 600px;
+      text-align: center;
+      font-family: 'Press Start 2P', monospace;
+      position: relative;
+    }
+
+    .oregon-content h2 {
+      color: var(--terminal-green);
+      font-size: 1rem;
+      margin-bottom: 30px;
+      line-height: 1.8;
+    }
+
+    .oregon-content p {
+      color: var(--terminal-green);
+      font-size: 0.7rem;
+      line-height: 2;
+      margin-bottom: 20px;
+    }
+
+    .oregon-content .death-msg {
+      color: var(--terminal-red);
+      font-size: 0.8rem;
+      margin: 30px 0;
+      padding: 20px;
+      border: 2px solid var(--terminal-red);
+    }
+
+    .oregon-close {
+      background: var(--terminal-green);
+      color: #000;
+      border: none;
+      padding: 10px 30px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.6rem;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    .oregon-close:hover {
+      background: var(--terminal-amber);
+    }
+
+    .tombstone {
+      font-size: 3rem;
+      margin: 20px 0;
+    }
+
+    @media (max-width: 600px) {
+      .crt-container {
+        padding: 15px;
+      }
+      .screen {
+        padding: 20px;
+      }
+      .title {
+        font-size: 1.6rem;
+      }
+      .scene-text {
+        font-size: 1.2rem;
+      }
+      .sanity-label {
+        font-size: 1.1rem;
+      }
+      .oregon-content {
+        padding: 20px;
+        margin: 20px;
+      }
+      .oregon-content h2 {
+        font-size: 0.8rem;
+      }
+      .oregon-content p {
+        font-size: 0.6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="crt-container">
+    <div class="screen" id="screen-top">
+      <div class="header">
+        <div class="title">CLASSROOM QUEST</div>
+        <div class="subtitle">// A Tech Integration Survival Simulation //</div>
+      </div>
+
+      <!-- PROMINENT SANITY METER -->
+      <div class="sanity-container">
+        <div class="sanity-label">◈ TEACHER SANITY ◈</div>
+        <div class="sanity-bar-container">
+          <div class="sanity-bar high" id="sanity-bar" style="width: 100%"></div>
+          <div class="sanity-value" id="sanity-value">100%</div>
+        </div>
+        <div class="sanity-status high" id="sanity-status">Ready to Learn</div>
+      </div>
+
+      <div class="stats-bar">
+        <div class="stat">
+          <span class="stat-label">CLASS TIME:</span>
+          <span class="stat-value" id="time">50</span><span class="stat-label"> min remaining</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">COFFEE:</span>
+          <span class="stat-value" id="coffee">☕☕</span>
+        </div>
+      </div>
+
+      <div class="game-content" id="game-content">
+        <!-- Content loaded dynamically -->
+      </div>
+
+      <div class="inventory" id="inventory">
+        <div class="inventory-title">STRATEGIES ACQUIRED:</div>
+        <div id="inventory-items">None yet...</div>
+      </div>
+
+      <!-- Easter Egg Trigger -->
+      <div class="easter-egg" onclick="showOregonTrail()">🦬</div>
+    </div>
+  </div>
+
+  <!-- Oregon Trail Easter Egg Modal -->
+  <div class="oregon-modal" id="oregon-modal">
+    <div class="oregon-content">
+      <h2>THE OREGON TRAIL<br>CLASSROOM EDITION</h2>
+      <div class="tombstone">🪦</div>
+      <div class="death-msg">
+        Here lies your lesson plan.<br><br>
+        It died of<br>
+        WIFI DYSENTERY.
+      </div>
+      <p>You have lost:</p>
+      <p>• 3 Chromebook chargers<br>• 47 minutes of instruction<br>• The will to check email<br>• 1 dry erase marker (it just vanished)</p>
+      <p style="margin-top: 30px; color: var(--terminal-amber);">Press SPACE BAR to ford the river<br>(the river is standardized testing)</p>
+      <button class="oregon-close" onclick="closeOregonTrail()">CONTINUE</button>
+    </div>
+  </div>
+
+  <script>
+    // Game State
+    let gameState = {
+      sanity: 100,
+      time: 50,
+      coffee: 2,
+      scene: 1,
+      inventory: [],
+      flags: {}
+    };
+
+    // Oregon Trail Easter Egg
+    function showOregonTrail() {
+      document.getElementById('oregon-modal').classList.add('active');
+    }
+
+    function closeOregonTrail() {
+      document.getElementById('oregon-modal').classList.remove('active');
+    }
+
+    // Close on escape or space key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' || e.key === ' ') {
+        closeOregonTrail();
+      }
+    });
+
+    // Scenes Data
+    const scenes = {
+      1: {
+        text: `<p>It's 9:47 AM. You've had <span class="highlight">two cups of coffee</span>. Your lunch is in the faculty fridge. Someone will definitely eat it.</p>
+               <p>The bell rings. <span class="highlight">30 seventh graders</span> arrive with the energy of a thousand suns.</p>
+               <p>Today's lesson: collaborative research using Chromebooks. You've planned this carefully. You've laminated things. You're ready.</p>
+               <p>The familiar symphony begins: Chromebook lids opening in a wave, chairs scraping, and somewhere in the back, someone is already asking to use the bathroom.</p>
+               <p class="internal">The day has officially begun.</p>`,
+        choices: [
+          { text: "Take a centering breath and begin", next: 2, sanity: 0, time: 0 }
+        ]
+      },
+
+      2: {
+        text: `<p>You're three sentences into your directions—you've really nailed the "I Do, We Do, You Do" structure—when <span class="student-name">Marcus</span> raises his hand.</p>
+               <p class="danger">"Mine's not working."</p>
+               <p>His screen is black. He presses keys randomly with complete confidence. Behind him, <span class="student-name">Destiny</span> raises her hand. Then <span class="student-name">Aiden</span>.</p>
+               <p class="internal">A wave is forming. You can feel the lesson plan starting to wobble.</p>`,
+        choices: [
+          { text: "Go help Marcus immediately", next: 3, sanity: -10, time: -5 },
+          { text: "Ask: 'What have you tried so far?'", next: 4, sanity: 0, time: -1, item: "3-Before-Me Protocol" },
+          { text: "Nod to your peer tech helper", next: 5, sanity: 5, time: 0, item: "Peer Tech Helpers" }
+        ]
+      },
+
+      3: {
+        text: `<p>You walk to Marcus's desk. The proximity is important, you tell yourself. Relationships first.</p>
+               <p>His Chromebook isn't plugged in. It hasn't been charged since the Clinton administration.</p>
+               <p class="internal">Eight minutes vanish into the void.</p>
+               <div class="outcome-box bad">While you troubleshoot, <span class="student-name">Jayden</span> discovers a video about monster trucks. <span class="student-name">Madison</span> and <span class="student-name">Sophia</span> are taking selfies. <span class="student-name">Tyler</span> has found a soundboard website. The airhorn is his favorite.</div>
+               <p>You have become the help desk. The lesson plan weeps quietly in the corner.</p>`,
+        choices: [
+          { text: "Address problems one by one (proximity! relationships!)", next: 6, sanity: -15, time: -5 },
+          { text: "Stop and regroup with the whole class", next: 7, sanity: -5, time: -3 }
+        ]
+      },
+
+      4: {
+        text: `<p>"Marcus, what have you tried so far?"</p>
+               <p>He looks at you. You look at him. A beautiful pedagogical silence unfolds.</p>
+               <p>"...Nothing?"</p>
+               <p>You gesture to the poster on the wall—the one you laminated during prep:</p>
+               <div class="tip-box"><strong>3-BEFORE-ME:</strong> (1) Check the basics—plugged in? WiFi? (2) Try a restart (3) Read the error message. Then ask for help.</div>
+               <p>Marcus presses the power button. The screen glows to life. It was asleep. Like Marcus at 8 AM every day.</p>
+               <p><span class="success">"Oh."</span></p>
+               <p><span class="student-name">Destiny</span> watches this exchange and quietly restarts her own device. It works. She says nothing. You say nothing. Understanding passes between you.</p>`,
+        choices: [
+          { text: "Continue with your beautifully scaffolded directions", next: 8, sanity: 5, time: 0 },
+          { text: "Reinforce the protocol with the whole class", next: 9, sanity: 10, time: -2 }
+        ]
+      },
+
+      5: {
+        text: `<p>You catch <span class="student-name">Jasmine's</span> eye and give the nod. She's your rotating tech helper this week—a role she takes extremely seriously.</p>
+               <p>Jasmine walks to Marcus with the energy of someone who has been IT support for her entire extended family since age nine.</p>
+               <p>"Did you try turning it on?"</p>
+               <p>"...No."</p>
+               <p>She presses the power button. It boots. She returns to her seat without a word, radiating quiet competence.</p>
+               <div class="outcome-box good">You continued teaching through the entire exchange. Two other students solved their own problems just by watching. This is what distributed leadership looks like.</div>`,
+        choices: [
+          { text: "Continue the lesson, grateful for Jasmine's existence", next: 8, sanity: 10, time: 0 }
+        ]
+      },
+
+      6: {
+        text: `<p>You move through the room with purpose. Proximity! Engagement! Formative assessment!</p>
+               <p><span class="student-name">Tyler</span>: "I can't find my document."</p>
+               <p><span class="student-name">Madison</span>: "The internet is slow." <span class="internal">(It's not.)</span></p>
+               <p><span class="student-name">Unidentified voice</span>: "CAN I GO TO THE BATHROOM?"</p>
+               <p>You realize with creeping horror: there's no standard file naming convention. Every student saved their work in a different digital dimension. Some have named their files "asdfjkl." Some have named them "untitled (47)."</p>
+               <p><span class="student-name">Kayden</span> raises his hand. "I accidentally deleted everything."</p>
+               <p class="internal">How is that even possible? You were gone for ninety seconds.</p>`,
+        choices: [
+          { text: "Stop everything and establish file conventions NOW", next: 10, sanity: -10, time: -8, item: "File Naming Convention" },
+          { text: "Have students pair up to help each other", next: 11, sanity: 0, time: -3 },
+          { text: "Push through. Document the chaos for your memoir.", next: 12, sanity: -15, time: -5 }
+        ]
+      },
+
+      7: {
+        text: `<p>"Everyone, I need your eyes up here please."</p>
+               <p>Half the class looks up. The Chromebook lids remain open, glowing with infinite possibility and distraction.</p>
+               <p class="internal">You are competing with the entire internet. The internet is winning.</p>
+               <p><span class="student-name">Tyler's</span> airhorn sounds again. He makes eye contact with you while pressing it. This is a power move.</p>`,
+        choices: [
+          { text: "Use your teacher voice (the real one)", next: 13, sanity: -10, time: -2 },
+          { text: "Walk slowly to Tyler and close his lid without a word", next: 14, sanity: -5, time: -1 },
+          { text: "Use your 'lids at 45' signal", next: 15, sanity: 10, time: 0, item: "Lids at 45 Signal" }
+        ]
+      },
+
+      8: {
+        text: `<p>The lesson is moving. Students are mostly on task. The learning objectives feel achievable.</p>
+               <p><span class="student-name">Jayden</span> raises his hand. Your experienced teacher senses tingle.</p>
+               <p>"Can I go to the bathroom?"</p>
+               <p>His Chromebook is open. The document is empty. The cursor blinks with unrealized potential. This is his third bathroom request this week, always during independent work time.</p>
+               <p class="internal">The eternal calculation: is this battle worth fighting?</p>`,
+        choices: [
+          { text: "Let him go (pick your battles)", next: 16, sanity: -5, time: 0 },
+          { text: "Ask him to share one thing he's learned first", next: 17, sanity: 5, time: -1, item: "Close the Lid Principle" },
+          { text: "\"You just went 20 minutes ago.\"", next: 18, sanity: -5, time: -2 }
+        ]
+      },
+
+      9: {
+        text: `<p>"Everyone, lids at 45 for ten seconds."</p>
+               <p>The class knows this signal. First week of school, you spent ten minutes practicing while they rolled their eyes. Worth. It.</p>
+               <p>Within <span class="success">eight seconds</span>, every Chromebook is half-closed. The glowing screens no longer compete for attention.</p>
+               <p>"Before you ask me for help, try the three steps on the poster. Marcus just solved his own problem. You can too."</p>
+               <p><span class="student-name">Jayden</span>, testing: "What if it's actually broken though?"</p>
+               <p>"Then you'll be able to tell me specifically what you tried and what the error message said. That's how I'll know it's a real problem."</p>
+               <p class="internal">No comeback. Beautiful.</p>
+               <div class="tip-box">This 30-second investment saves hours across the semester. Routines are compound interest for classroom management.</div>`,
+        choices: [
+          { text: "Resume the lesson with quiet satisfaction", next: 8, sanity: 10, time: 0 }
+        ]
+      },
+
+      10: {
+        text: `<p>"Everyone stop. We need to set up our folders correctly."</p>
+               <p>The collective groan is impressive in its synchronization. These children cannot agree on anything except their opposition to organization.</p>
+               <p>Eight minutes later—it's never five minutes, never—everyone has a properly named folder. Three students have misspelled their own names. One has named their folder "folder."</p>
+               <p class="internal">Progress.</p>
+               <div class="tip-box"><strong>FILE NAMING CONVENTION:</strong> Front-load this routine BEFORE the activity starts. The first five minutes of class are sacred setup time. Future you will be grateful.</div>`,
+        choices: [
+          { text: "Continue, behind schedule but wiser", next: 19, sanity: -5, time: 0 }
+        ]
+      },
+
+      11: {
+        text: `<p>"Find someone near you. If you know where your file is, help someone who doesn't."</p>
+               <p>Shuffling. Chaos. Then: students teaching students.</p>
+               <p><span class="student-name">Destiny</span> shows <span class="student-name">Tyler</span> how to search in Drive. <span class="student-name">Jasmine</span> assists three people in ninety seconds, her efficiency almost aggressive.</p>
+               <div class="outcome-box good">Peer support distributes the cognitive load AND builds classroom community. Also, you got to stand still for 45 seconds. Cherish this.</div>`,
+        choices: [
+          { text: "Continue the lesson, faith in humanity slightly restored", next: 19, sanity: 10, time: 0 }
+        ]
+      },
+
+      12: {
+        text: `<p>You push forward, triaging problems as they arise. This is fine. Everything is fine.</p>
+               <div class="outcome-box bad">The period becomes a series of small fires. Learning happens in the margins. Mostly, there is survival.</div>
+               <p class="internal">Somewhere, a PD presenter is talking about "productive struggle." This is not that.</p>`,
+        choices: [
+          { text: "Survive toward the finish line", next: 20, sanity: -10, time: -3 }
+        ]
+      },
+
+      13: {
+        text: `<p>"EVERYONE. EYES. UP. HERE."</p>
+               <p>The Teacher Voice emerges. The room goes quiet. <span class="student-name">Emma</span>, who was actually annotating her sources like you taught her, freezes mid-highlight.</p>
+               <p class="internal">Collateral damage. The good ones always get caught in the crossfire.</p>
+               <p>You have their attention now. The question is: at what cost?</p>
+               <div class="outcome-box bad">The Teacher Voice works, but spends relationship capital you've been building all semester.</div>`,
+        choices: [
+          { text: "Give directions quickly before the moment passes", next: 8, sanity: -5, time: -1 }
+        ]
+      },
+
+      14: {
+        text: `<p>You walk slowly to <span class="student-name">Tyler's</span> desk. You maintain eye contact. You say nothing. You close his Chromebook lid with the gentle finality of a closing argument.</p>
+               <p>He opens his mouth.</p>
+               <p>You raise one eyebrow. <span class="internal">(You've practiced this.)</span></p>
+               <p>He closes his mouth.</p>
+               <p>The class, having witnessed this exchange, becomes measurably more focused. Sometimes silence speaks loudest.</p>`,
+        choices: [
+          { text: "Continue with directions, eyebrow still slightly raised", next: 8, sanity: 0, time: 0 }
+        ]
+      },
+
+      15: {
+        text: `<p>You raise your hand in the practiced gesture—the universal "lids at 45" signal.</p>
+               <p>First week of school, you spent ten minutes drilling this while they complained. You told them it was important. They did not believe you. But they learned it anyway.</p>
+               <p>Within <span class="success">six seconds</span>, every Chromebook is half-closed. Even <span class="student-name">Tyler's</span>. The airhorns fall silent.</p>
+               <p>"Thank you. Here's where we submit. Watch once, then you try."</p>
+               <p>Thirty seconds of instruction. Lids open. Back to work. No chaos. Just... teaching.</p>
+               <div class="outcome-box good">The routine works because you taught it when it felt pointless. That's the whole secret.</div>`,
+        choices: [
+          { text: "Continue, mentally thanking first-week-of-school you", next: 8, sanity: 15, time: 0, item: "Lids at 45 Signal" }
+        ]
+      },
+
+      16: {
+        text: `<p>"Fine. Go."</p>
+               <p><span class="student-name">Jayden</span> departs. He is gone for <span class="danger">twelve minutes</span>.</p>
+               <p>When he returns, he has no idea what's happening. He asks <span class="student-name">Emma</span>—precious, focused Emma—what they're doing. Emma stops her excellent work to explain.</p>
+               <div class="outcome-box bad">The distraction ripples outward. Three other students suddenly need bathroom breaks. <span class="student-name">Tyler</span> asks if he can "go fill his water bottle" with the energy of someone who has never drunk water voluntarily.</div>`,
+        choices: [
+          { text: "Hold the line—no more breaks right now", next: 19, sanity: -10, time: -3 },
+          { text: "Let it happen. You'll reflect on this in your journal later.", next: 21, sanity: -15, time: -5 }
+        ]
+      },
+
+      17: {
+        text: `<p>"Close your lid for a second, Jayden."</p>
+               <p>Theatrical sigh. Compliance.</p>
+               <p>"Before you go, tell me one thing you've learned about your topic."</p>
+               <p>Silence. His eyes search the room for an exit. There is none.</p>
+               <p>"...The Amazon is in Brazil?"</p>
+               <p>"Good start. When you get back, find out how many countries the Amazon actually flows through. Then you can go."</p>
+               <p><span class="student-name">Jayden</span> returns in <span class="success">four minutes</span> and immediately starts Googling. He has a purpose now. The lid-close created a cognitive reset.</p>
+               <div class="tip-box"><strong>CLOSE THE LID PRINCIPLE:</strong> 1:1 doesn't mean always-on. Sometimes the most powerful instructional move is closing the screen.</div>`,
+        choices: [
+          { text: "Continue, having witnessed a small miracle", next: 19, sanity: 10, time: 0 }
+        ]
+      },
+
+      18: {
+        text: `<p>"Jayden, you just went twenty minutes ago."</p>
+               <p>"That was yesterday."</p>
+               <p>"It was twenty minutes ago. I was there. We both were."</p>
+               <p>"So I can't go to the bathroom? That's like... against the rules or something."</p>
+               <p>The class is watching. <span class="student-name">Jayden</span> has an audience now. This is his moment.</p>
+               <p class="internal">You are now having a constitutional law debate with a twelve-year-old instead of teaching.</p>`,
+        choices: [
+          { text: "Stand firm (the principle matters)", next: 22, sanity: -10, time: -3 },
+          { text: "\"Fine. Go. We'll discuss this after class.\"", next: 23, sanity: -5, time: -1 }
+        ]
+      },
+
+      19: {
+        text: `<p>Fifteen minutes remain. Students are working. The hum of learning fills the room. You even see <span class="student-name">Jayden</span> typing something that might be actual research.</p>
+               <p><span class="student-name">Aiden</span> materializes at your elbow like a helpful ghost. His Chromebook displays a 3% battery warning.</p>
+               <p>"Can I do the exit ticket tomorrow? Mine's about to die."</p>
+               <p class="internal">He's had 35 minutes to notice this. You watched him watch YouTube for ten of those minutes.</p>`,
+        choices: [
+          { text: "Point to the charging station and dead battery protocol", next: 24, sanity: 10, time: 0, item: "Dead Battery Protocol" },
+          { text: "Let him skip it this time (it's been a long day)", next: 25, sanity: -10, time: 0 },
+          { text: "Have him share a screen with someone who's finished", next: 26, sanity: 5, time: 0 }
+        ]
+      },
+
+      20: {
+        text: `<p>The period ends. Some work was submitted. Some exists only in the digital ether, misfiled under "untitled (48)."</p>
+               <p>Students file out. The room is quiet. Your coffee is cold.</p>
+               <p class="internal">Tomorrow you'll try again. With more routines. And more coffee.</p>`,
+        choices: [
+          { text: "See your results", next: "ending_survive", sanity: 0, time: 0 }
+        ]
+      },
+
+      21: {
+        text: `<p>The bathroom exodus begins. By period's end, your classroom has become a revolving door.</p>
+               <div class="outcome-box bad">Consistency matters. One exception becomes thirty exceptions wearing a trench coat pretending to be policy.</div>
+               <p class="internal">Next time: clear expectations before the activity. And maybe a sign-out sheet. With a pen attached. On a chain.</p>`,
+        choices: [
+          { text: "See your results", next: "ending_struggle", sanity: -10, time: 0 }
+        ]
+      },
+
+      22: {
+        text: `<p>The standoff continues. You hold the line. <span class="student-name">Jayden</span> eventually sits, radiating adolescent injustice.</p>
+               <p>You won. Technically.</p>
+               <p class="internal">But the next fifteen minutes are tense. The energy is off. <span class="student-name">Jayden</span> spends the rest of class typing with aggressive randomness.</p>`,
+        choices: [
+          { text: "Push through to the end", next: 19, sanity: -5, time: -2 }
+        ]
+      },
+
+      23: {
+        text: `<p><span class="student-name">Jayden</span> leaves. The "after class conversation" will probably not happen, and you both know it.</p>
+               <p class="internal">Sometimes you kick the can down the road because the road is long and the can is heavy and you have 147 other things to do.</p>
+               <p>At least the disruption is over. Back to teaching.</p>`,
+        choices: [
+          { text: "Return focus to the class", next: 19, sanity: 0, time: -1 }
+        ]
+      },
+
+      24: {
+        text: `<p>"Dead batteries use the charging station. You can finish at the standing desk."</p>
+               <p>You point to the corner with the spare cart—clearly labeled, same place since August.</p>
+               <p><span class="student-name">Aiden</span> sighs like you've asked him to climb Everest, but he goes.</p>
+               <div class="outcome-box good">The protocol exists. He knew it existed. He just wanted to see if today was different. It's not. Consistency is a gift you give yourself.</div>
+               <div class="tip-box"><strong>DEAD BATTERY PROTOCOL:</strong> Posted, practiced, enforced. Clear routines eliminate the same question asked 30 different ways.</div>`,
+        choices: [
+          { text: "Wrap up the class feeling competent", next: 27, sanity: 10, time: 0 }
+        ]
+      },
+
+      25: {
+        text: `<p>"Fine, just do it tomorrow."</p>
+               <p><span class="student-name">Aiden</span> begins packing up with suspicious speed.</p>
+               <p><span class="student-name">Madison</span>: "Wait, we can skip the exit ticket?"</p>
+               <p><span class="student-name">Tyler</span>: "My battery's low too." <span class="internal">(It's at 67%. You can see it from here.)</span></p>
+               <div class="outcome-box bad">Exceptions become expectations at the speed of seventh grade gossip.</div>`,
+        choices: [
+          { text: "See your results", next: "ending_survive", sanity: -5, time: 0 }
+        ]
+      },
+
+      26: {
+        text: `<p>"Emma, can Aiden share your screen to finish the exit ticket?"</p>
+               <p><span class="student-name">Emma</span>, saint that she is, nods. She's already done. <span class="student-name">Aiden</span> has accountability. Two problems solved.</p>
+               <div class="outcome-box good">Peer solutions work and build classroom community. Also, Emma gets to feel helpful, which she deserves.</div>`,
+        choices: [
+          { text: "Wrap up the class", next: 27, sanity: 5, time: 0 }
+        ]
+      },
+
+      27: {
+        text: `<p>The exit ticket is launched. Students are focused—or at least focused-adjacent. <span class="student-name">Jasmine</span> finishes in ninety seconds and pulls out a book. <span class="student-name">Marcus</span> is still on question one, but he's trying.</p>
+               <p>The bell rings.</p>
+               <p>"Submit what you have! Nice work today!"</p>
+               <p>They flood out. The room is suddenly, blissfully silent. You take a breath.</p>
+               <p class="internal">It wasn't perfect. It never is. But it was good. The routines held. The learning happened. Tomorrow you'll do it again.</p>`,
+        choices: [
+          { text: "See your results", next: "ending_good", sanity: 10, time: 0 }
+        ]
+      },
+
+      "ending_good": {
+        text: `<div class="ending-title ending-good">✦ CLASS COMPLETE: SYSTEMS WORKED ✦</div>
+               <p>You did it. Technology served learning instead of just accompanying it.</p>
+               <p>The routines you built—the protocols you practiced when it felt pointless—carried you through today. <span class="success">First-week-of-school you was wise.</span></p>
+               <p>Review your acquired strategies below. Each one is infrastructure for sustainable teaching. Each one is time you'll get back tomorrow.</p>
+               <p class="internal">Now go check if your lunch is still in the faculty fridge. (It's not. It's never there. But hope springs eternal.)</p>`,
+        choices: [
+          { text: "Play again", next: "restart", sanity: 0, time: 0 }
+        ],
+        ending: true
+      },
+
+      "ending_survive": {
+        text: `<div class="ending-title ending-survive">◆ CLASS COMPLETE: SURVIVAL MODE ◆</div>
+               <p>You made it through. Not every period is a victory—some periods are just getting to the other side.</p>
+               <p>But here's the thing: every wobble today is information. Every routine you needed but didn't have is one you can build.</p>
+               <p><span class="highlight">Look at the strategies below.</span> Pick one. Just one. Practice it next week until it becomes automatic.</p>
+               <p class="internal">Sustainable teaching is built one routine at a time. You're not behind—you're iterating.</p>`,
+        choices: [
+          { text: "Play again", next: "restart", sanity: 0, time: 0 }
+        ],
+        ending: true
+      },
+
+      "ending_struggle": {
+        text: `<div class="ending-title ending-bad">◇ CLASS COMPLETE: LEARNING EXPERIENCE ◇</div>
+               <p>Some days the technology wins. Today was that day.</p>
+               <p>The Chromebooks were present. The learning was... in there somewhere, probably, in small doses.</p>
+               <p>But every challenging class is data, not failure. <span class="highlight">Every problem you encountered is a routine you can establish.</span></p>
+               <p>Check the strategies below. Tomorrow the bell will ring again. You'll be ready.</p>
+               <p class="internal">And hey—at least nobody cried. (Including you. Especially you.)</p>`,
+        choices: [
+          { text: "Play again", next: "restart", sanity: 0, time: 0 }
+        ],
+        ending: true
+      }
+    };
+
+    // Get sanity status text
+    function getSanityStatus(sanity) {
+      if (sanity >= 80) return "Ready to Learn";
+      if (sanity >= 60) return "Manageable";
+      if (sanity >= 40) return "Counting to Ten";
+      if (sanity >= 20) return "Considering Grad School";
+      return "Updating LinkedIn";
+    }
+
+    // Get sanity class
+    function getSanityClass(sanity) {
+      if (sanity >= 60) return "high";
+      if (sanity >= 30) return "medium";
+      return "low";
+    }
+
+    // Render current scene
+    function renderScene() {
+      const scene = scenes[gameState.scene];
+      const content = document.getElementById('game-content');
+      
+      let html = `<div class="scene-text">${scene.text}</div>`;
+      html += `<div class="choices">`;
+      
+      scene.choices.forEach((choice, index) => {
+        html += `<button class="choice-btn" onclick="makeChoice(${index})">${choice.text}</button>`;
+      });
+      
+      html += `</div>`;
+      content.innerHTML = html;
+      
+      // Update sanity meter
+      const sanityBar = document.getElementById('sanity-bar');
+      const sanityValue = document.getElementById('sanity-value');
+      const sanityStatus = document.getElementById('sanity-status');
+      const sanityClass = getSanityClass(gameState.sanity);
+      
+      sanityBar.style.width = `${gameState.sanity}%`;
+      sanityBar.className = `sanity-bar ${sanityClass}`;
+      sanityValue.textContent = `${gameState.sanity}%`;
+      sanityStatus.textContent = getSanityStatus(gameState.sanity);
+      sanityStatus.className = `sanity-status ${sanityClass}`;
+      
+      // Update other stats
+      document.getElementById('time').textContent = Math.max(0, gameState.time);
+      document.getElementById('coffee').textContent = '☕'.repeat(Math.max(0, gameState.coffee));
+      
+      // Update inventory
+      const invItems = document.getElementById('inventory-items');
+      if (gameState.inventory.length === 0) {
+        invItems.innerHTML = 'None yet...';
+      } else {
+        invItems.innerHTML = gameState.inventory.map(item => 
+          `<span class="inventory-item">${item}</span>`
+        ).join('');
+      }
+    }
+
+    // Make a choice
+    function makeChoice(index) {
+      const scene = scenes[gameState.scene];
+      const choice = scene.choices[index];
+      
+      // Apply effects
+      gameState.sanity += choice.sanity || 0;
+      gameState.time += choice.time || 0;
+      
+      // Clamp values
+      gameState.sanity = Math.max(0, Math.min(100, gameState.sanity));
+      gameState.time = Math.max(0, gameState.time);
+      
+      // Add item to inventory
+      if (choice.item && !gameState.inventory.includes(choice.item)) {
+        gameState.inventory.push(choice.item);
+      }
+      
+      // Handle restart
+      if (choice.next === "restart") {
+        gameState = {
+          sanity: 100,
+          time: 50,
+          coffee: 2,
+          scene: 1,
+          inventory: [],
+          flags: {}
+        };
+      } else {
+        gameState.scene = choice.next;
+      }
+      
+      renderScene();
+      
+      // Scroll to top of screen
+      document.getElementById('screen-top').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Start the game
+    renderScene();
+  </script>
+</body>
+</html>
